@@ -1,10 +1,13 @@
 from setuptools import setup
+from pip.req import parse_requirements
 
-setup(name='YourAppName',
+install_reqs = parse_requirements("requirements.txt", session=False)
+reqs = [ str(ir.req) for ir in install_reqs ]
+
+setup(name='Trams Hunter',
       version='1.0',
-      description='OpenShift App',
-      author='Your Name',
-      author_email='example@example.com',
-      url='http://www.python.org/sigs/distutils-sig/',
-#      install_requires=['Django>=1.3'],
+      description='Find out where your tram is.',
+      author='JAGO',
+      author_email='example@example.com', url='http://www.python.org/sigs/distutils-sig/',
+      install_requires=reqs
      )

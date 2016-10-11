@@ -1,0 +1,22 @@
+<!doctype hrtml>
+
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>Trams Hunter</title>
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+</head>
+
+<body>
+    {% block navbar %}
+    {% endblock %}
+
+    {% block content %}
+    {% endblock %}
+
+    <script src="{{ url_for('static', filename='js/jquery-3.1.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>
+</body>
+
+</html>
