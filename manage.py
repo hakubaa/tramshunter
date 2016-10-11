@@ -1,13 +1,17 @@
-from flask import Flask
-from flask_script import Manager
+import os
+from app import create_app
+from flask_script import Manager, Shell
 
-app = Flask(__name__)
-
+app = create_app("default")
 manager = Manager(app)
-        
-@app.route("/")
-def index():
-    return "<h1>Hello World</h1>"
+
+@manager.command
+def test():
+    """ Run the unit tests."""
+    import unittest
+    tests = unittest.TestLoader().discover("tests")
+    unittest.TextTestRunner(verbosity=2).run(tests)
+
 
 if __name__ == "__main__":
     manager.run()
