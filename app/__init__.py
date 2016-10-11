@@ -9,4 +9,7 @@ def create_app(config_name):
     from app.main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    from app.data import data as data_blueprint
+    app.register_blueprint(data_blueprint, url_prefix = "/data")
+
     return app
