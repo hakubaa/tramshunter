@@ -18,7 +18,7 @@ TramsModel.prototype.loadData = function() {
     var self = this;
     $.ajax({
         dataType: "json",
-        url: "http://tramshunter-jago.rhcloud.com/data",
+        url: "/data",
         data: null,
         cache: false,
         success: function(response) {

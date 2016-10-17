@@ -1,280 +1,276 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
 
-<head>
-    <meta charset=utf-8">
-    <title>Trams Hunter</title>
+{% block styles %}
+{{ super() }}
+<style>
+    #map {
+        height: 480px;
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    #map-ui {
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
 
-    <link rel="stylesheet" href="static/css/bootstrap.min.css">
-    <link rel="stylesheet" href="static/css/bootstrap-theme.min.css">
-   
-    <script src="http://code.jquery.com/jquery-3.1.1.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>
-    <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?language=en"></script>
-
-    <style>
-        #map {
-            height: 480px;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-        #map-ui {
-            margin-bottom: 10px;
-        }
-    </style>
-</head>
-
-<body>
-    <div class="container">
-        <div class="page-header">
-            <h1>Trams Hunter</h1>
-        </div>
-        <div id="map-ui" class="input-group">
-            <input type="text" class="form-control" id="lines-to-filter" placeholder = "e.g. 1, 2, 3">
-            <span class="input-group-btn">
-                <button id="btn-filter" class="btn btn-default" type="button">Filter Lines</button>
-            </span>
-        </div>
-        <div id="map"></div>
-        <div class="alert alert-info" role="alert" id="info-wrapper">
-            <span id="info-msg">...</span>
-            <span id="update-time"></span>
-        </div>
-        <div>
-            <button type="button" class="btn btn-default btn-md" id="btn-refresh">
-                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh Data
-            </button>
-            <div class="checkbox">
-                <label><input type="checkbox" value="" id="auto-update" checked>Automatically update data</label>
-            </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">Color Settings</div>
-                <div class="panel-body">
-                    <table id="colors-table">
-                    <tr>
-                        <th>Lines</th>
-                        <th>Color</th> 
-                    </tr>
-                    <tr>
-                        <td><input type="text" id="color-lines" class="form-control" 
-                              placeholder="e.g. 1, 2, 3"></td>
-                        <td><input type="color" id="color-value" class="form-control" 
-                             name="favcolor" placeholder="e.g. #00FF00"></td>
-                        <td><button id="color-add" class="btn btn-default">Add</button></td> 
-                    </tr>
-                    </table> 
-                </div>
-           </div>
-        </div>
+{% block content %}
+{{ super() }}
+<div class="container">
+    <div class="page-header">
+        <h1>Trams Hunter</h1>
     </div>
+    <div id="map-ui" class="input-group">
+        <input type="text" class="form-control" id="lines-to-filter" placeholder = "e.g. 1, 2, 3">
+        <span class="input-group-btn">
+            <button id="btn-filter" class="btn btn-default" type="button">Filter Lines</button>
+        </span>
+    </div>
+    <div id="map"></div>
+    <div class="alert alert-info" role="alert" id="info-wrapper">
+        <span id="info-msg">...</span>
+        <span id="update-time"></span>
+    </div>
+    <div>
+        <button type="button" class="btn btn-default btn-md" id="btn-refresh">
+            <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span> Refresh Data
+        </button>
+        <div class="checkbox">
+            <label><input type="checkbox" value="" id="auto-update" checked>Automatically update data</label>
+        </div>
+        <div class="panel panel-default">
+            <div class="panel-heading">Color Settings</div>
+            <div class="panel-body">
+                <table id="colors-table">
+                <tr>
+                    <th>Lines</th>
+                    <th>Color</th> 
+                </tr>
+                <tr>
+                    <td><input type="text" id="color-lines" class="form-control" 
+                          placeholder="e.g. 1, 2, 3"></td>
+                    <td><input type="text" id="color-value" class="form-control" 
+                         name="favcolor" placeholder="e.g. #00FF00"></td>
+                    <td><button id="color-add" class="btn btn-default">Add</button></td> 
+                </tr>
+                </table> 
+            </div>
+       </div>
+    </div>
+</div>
+{% endblock %}
 
-    <script src="static/js/bootstrap.min.js"></script>
-    <script src="static/trams.util.js"></script>
-    <script type="text/javascript">
+
+
+{% block body_scripts %}
+{{ super() }}
+<script src="https://maps.googleapis.com/maps/api/js?language=en"></script>
+<script src="{{ url_for('static', filename='js/trams.util.js') }}"></script>
+<script>
         
 /*******************************************************************************
- GOOGLE MAPS
+GOOGLE MAPS
 *******************************************************************************/
 
-        var map = undefined;
-        var markers = [];
+    var map = undefined;
+    var markers = [];
 
-        function initialize() {
-            var mapOptions = {
-                center: new google.maps.LatLng(52.2297, 21.0122),
-                zoom: 10
-            };
-            map = new google.maps.Map(document.getElementById("map"), mapOptions);
-        }
-        google.maps.event.addDomListener(window, 'load', initialize);
-       
-/******************************************************************************/
- 
-/*******************************************************************************
- TRAMS - VIEW
-*******************************************************************************/
-
-        var trams = new TramsControler(new TramsModel());
-        var updateTimer = new Timer(35, 1);
-
-        // TRAMS CALLBACKS
-
-        trams.on("onLoad", function(obj) {
-            updateInfo("Updating ...", alertClass="alert-warning"); 
-        });
-
-        trams.on("onLoaded", function(obj) {
-            var counter = resetMarkers();
-            if (counter > 0) {
-                updateInfo("Update Successful: " + counter + " trams detected.", alertClass="alert-success");   
-            } else {
-                updateInfo("Update Fail: 0 trams detected.", alertClass="alert-danger");
-            }
-            if ($("#auto-update").is(':checked')) {
-                updateTimer.start();
-            }
-        });     
- 
-        // TIMER CALLBACKS
- 
-        updateTimer.on("onInterval", function(counter) {
-            $("#update-time").html(" (Next update in " + counter + " seconds)");	
-        });
-
-        updateTimer.on("onEnd", function(counter) {
-            $("#update-time").html("");
-            trams.updateData();
-        });
-
-        updateTimer.on("onStop", function() {
-            $("#update-time").html("");
-        });
-
-        $("#btn-refresh").click(function() {
-            updateTimer.stop();
-            trams.updateData();
-        });
-
-        $("#lines-to-filter").keyup(function (e) {
-            if(e.keyCode == 13) {
-                filterTrams();
-            }
-        });
-
-        $("#btn-filter").click(function() {
-            filterTrams();
-        });
-
-        // LOAD DATA FOR THE FIRST TIME
-        trams.updateData();  
-
-        // FUNCTIONS
-
-        function addTramMarker(tram, map, color) {
-            if (color === undefined) color = "FF0000";
-            
-            var pinImage = new google.maps.MarkerImage(
-                "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + color,
-                new google.maps.Size(21, 34),
-                new google.maps.Point(0, 0),
-                new google.maps.Point(10, 34)
-            );
-            var marker = new google.maps.Marker({
-                position: new google.maps.LatLng(tram.Lat, tram.Lon),
-                map: map,
-                icon: pinImage
-            }); 
-            marker.addListener("click", (function() {
-                var infoWindow = new google.maps.InfoWindow({
-                    content: tram.FirstLine + "(" + tram.Time + ")"
-                });
-                return (function() {
-                    infoWindow.open(map, marker);
-                });
-            })());
-            return (marker);
-        }
-
-        function clearMarkers() {
-            for (var i = 0; i < markers.length; i++ ) {
-                 markers[i].setMap(null);
-            }
-            markers.length = 0;
-        }
-
-        function updateInfo(msg, alertClass) {
-            if (alertClass === undefined) alertClass = "alert-info";
-            $("#info-msg").html(msg);
-            $("#info-wrapper").removeClass();
-            $("#info-wrapper").addClass("alert");
-            $("#info-wrapper").addClass(alertClass);
-        }
-
-        function filterTrams() {
-            trams.clearFilter();
-            var lines = $("#lines-to-filter").val().split(",");
-            for (var i = 0; i < lines.length; i++) {
-                if (isNumeric(lines[i])) {
-                    trams.addToFilter(parseInt(lines[i], 10));
-                }
-            }
-            resetMarkers(); 
-        }
-
-        function resetMarkers() {
-            clearMarkers();
-            var data = trams.getTrams();
-            for (var i = 0; i < data.length; i++) {
-                var marker = addTramMarker(
-                    data[i], map, 
-                    trams.getColor(parseInt(data[i].FirstLine, 10))
-                );
-                markers.push(marker);
-            }  
-            return (data.length);
-        }
-
-        function isNumeric(n) {
-            return !isNaN(parseFloat(n)) && isFinite(n);
-        }
-
-/******************************************************************************/
-
-/*******************************************************************************
- COLORS
-*******************************************************************************/
-
-        $("#color-add").click(function() {
-            var lines = $("#color-lines").val();
-            var color = $("#color-value").val();
-
-            if (lines == "" || color == "") {
-                alert("One or both of required fields are empty. Please fill tram lines and color.");
-            } else {
-                if (new RegExp("^[#]?([0-9A-Fa-f]){6}$").test(color)) {            
-                    $("#colors-table").append(createColorRow(lines, color)); 
-                    var lines = lines.split(",");
-                    for (var i = 0; i < lines.length; i++) {
-                        if (isNumeric(lines[i])) {
-                            trams.setColor(parseInt(lines[i], 10), color);
-                        }
-                    }
-                    $("#color-lines").val("");
-                    $("#color-value").val("");
-                    resetMarkers();
-               } else {
-                   alert("The color has been given in not supported format. Please use hexadecimal representation.");
-               }
-           }
-        });
-
-        $(document).on("click", ".color-remove", function() {
-            var lines = $(this).parent().parent().find(".color-lines").val().split(",");
-            for (var i = 0; i < lines.length; i++) {
-                if (isNumeric(lines[i])) {
-                    trams.removeColor(parseInt(lines[i], 10));
-                }
-            }
-            $(this).parent().parent().remove();
-            resetMarkers();
-        });
-
-        function createColorRow(lines, color) {
-            var $tr = $("<tr></tr>");
-            $tr.append("<td><input disabled type='text' class='color-lines form-control' value='" + 
-                lines + "'></td>");
-            $tr.append("<td><input disabled type='color' class='color-value form-control' value='" +
-                color + "'></td>");
-            $tr.append("<td><button class='color-remove btn btn-default'>Remove</button></td>"); 
-            return ($tr);
-        }
-
-/******************************************************************************/
-
-        window.onbeforeunload = function (e) {
-            
+    function initialize() {
+        var mapOptions = {
+            center: new google.maps.LatLng(52.2297, 21.0122),
+            zoom: 10
         };
+        map = new google.maps.Map(document.getElementById("map"), mapOptions);
+    }
+    google.maps.event.addDomListener(window, 'load', initialize);
+   
+/******************************************************************************/
 
-    </script>
-</body>
+/*******************************************************************************
+TRAMS - VIEW
+*******************************************************************************/
 
-</html>
+    var trams = new TramsControler(new TramsModel());
+    var updateTimer = new Timer(35, 1);
+
+    // TRAMS CALLBACKS
+
+    trams.on("onLoad", function(obj) {
+        updateInfo("Updating ...", alertClass="alert-warning"); 
+    });
+
+    trams.on("onLoaded", function(obj) {
+        var counter = resetMarkers();
+        if (counter > 0) {
+            updateInfo("Update Successful: " + counter + " trams detected.", alertClass="alert-success");   
+        } else {
+            updateInfo("Update Fail: 0 trams detected.", alertClass="alert-danger");
+        }
+        if ($("#auto-update").is(':checked')) {
+            updateTimer.start();
+        }
+    });     
+
+    // TIMER CALLBACKS
+
+    updateTimer.on("onInterval", function(counter) {
+        $("#update-time").html(" (Next update in " + counter + " seconds)");	
+    });
+
+    updateTimer.on("onEnd", function(counter) {
+        $("#update-time").html("");
+        trams.updateData();
+    });
+
+    updateTimer.on("onStop", function() {
+        $("#update-time").html("");
+    });
+
+    $("#btn-refresh").click(function() {
+        updateTimer.stop();
+        trams.updateData();
+    });
+
+    $("#lines-to-filter").keyup(function (e) {
+        if(e.keyCode == 13) {
+            filterTrams();
+        }
+    });
+
+    $("#btn-filter").click(function() {
+        filterTrams();
+    });
+
+    // LOAD DATA FOR THE FIRST TIME
+    trams.updateData();  
+
+    // FUNCTIONS
+
+    function addTramMarker(tram, map, color) {
+        if (color === undefined) color = "FF0000";
+        
+        var pinImage = new google.maps.MarkerImage(
+            "http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + color,
+            new google.maps.Size(21, 34),
+            new google.maps.Point(0, 0),
+            new google.maps.Point(10, 34)
+        );
+        var marker = new google.maps.Marker({
+            position: new google.maps.LatLng(tram.Lat, tram.Lon),
+            map: map,
+            icon: pinImage
+        }); 
+        marker.addListener("click", (function() {
+            var infoWindow = new google.maps.InfoWindow({
+                content: tram.FirstLine + "(" + tram.Time + ")"
+            });
+            return (function() {
+                infoWindow.open(map, marker);
+            });
+        })());
+        return (marker);
+    }
+
+    function clearMarkers() {
+        for (var i = 0; i < markers.length; i++ ) {
+             markers[i].setMap(null);
+        }
+        markers.length = 0;
+    }
+
+    function updateInfo(msg, alertClass) {
+        if (alertClass === undefined) alertClass = "alert-info";
+        $("#info-msg").html(msg);
+        $("#info-wrapper").removeClass();
+        $("#info-wrapper").addClass("alert");
+        $("#info-wrapper").addClass(alertClass);
+    }
+
+    function filterTrams() {
+        trams.clearFilter();
+        var lines = $("#lines-to-filter").val().split(",");
+        for (var i = 0; i < lines.length; i++) {
+            if (isNumeric(lines[i])) {
+                trams.addToFilter(parseInt(lines[i], 10));
+            }
+        }
+        resetMarkers(); 
+    }
+
+    function resetMarkers() {
+        clearMarkers();
+        var data = trams.getTrams();
+        for (var i = 0; i < data.length; i++) {
+            var marker = addTramMarker(
+                data[i], map, 
+                trams.getColor(parseInt(data[i].FirstLine, 10))
+            );
+            markers.push(marker);
+        }  
+        return (data.length);
+    }
+
+    function isNumeric(n) {
+        return !isNaN(parseFloat(n)) && isFinite(n);
+    }
+
+/******************************************************************************/
+
+/*******************************************************************************
+COLORS
+*******************************************************************************/
+
+    $("#color-add").click(function() {
+        var lines = $("#color-lines").val();
+        var color = $("#color-value").val();
+
+        if (lines == "" || color == "") {
+            alert("One or both of required fields are empty. Please fill tram lines and color.");
+        } else {
+            if (new RegExp("^[#]?([0-9A-Fa-f]){6}$").test(color)) {            
+                $("#colors-table").append(createColorRow(lines, color)); 
+                var lines = lines.split(",");
+                for (var i = 0; i < lines.length; i++) {
+                    if (isNumeric(lines[i])) {
+                        trams.setColor(parseInt(lines[i], 10), color);
+                    }
+                }
+                $("#color-lines").val("");
+                $("#color-value").val("");
+                resetMarkers();
+           } else {
+               alert("The color has been given in not supported format. Please use hexadecimal representation.");
+           }
+       }
+    });
+
+    $(document).on("click", ".color-remove", function() {
+        var lines = $(this).parent().parent().find(".color-lines").val().split(",");
+        for (var i = 0; i < lines.length; i++) {
+            if (isNumeric(lines[i])) {
+                trams.removeColor(parseInt(lines[i], 10));
+            }
+        }
+        $(this).parent().parent().remove();
+        resetMarkers();
+    });
+
+    function createColorRow(lines, color) {
+        var $tr = $("<tr></tr>");
+        $tr.append("<td><input disabled type='text' class='color-lines form-control' value='" + 
+            lines + "'></td>");
+        $tr.append("<td><input disabled type='color' class='color-value form-control' value='" +
+            color + "'></td>");
+        $tr.append("<td><button class='color-remove btn btn-default'>Remove</button></td>"); 
+        return ($tr);
+    }
+
+/******************************************************************************/
+
+    window.onbeforeunload = function (e) {
+        
+    };
+
+</script>
+
+{% endblock %}
