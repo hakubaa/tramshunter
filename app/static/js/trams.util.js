@@ -18,7 +18,7 @@ TramsModel.prototype.loadData = function() {
     var self = this;
     $.ajax({
         dataType: "json",
-        url: "/data",
+        url: "http://tramshunter-jago.rhcloud.com/data",
         data: null,
         cache: false,
         success: function(response) {
@@ -45,7 +45,7 @@ TramsModel.prototype.getData = function() {
 function TramsControler(model) {
     this.model = model;
     this.filter = [];
-    this.colors = {};
+    this.colors = [];
     this.callbacks = {
         onLoad: undefined,
         onLoaded: undefined
@@ -98,16 +98,56 @@ TramsControler.prototype.updateData = function() {
     this.model.loadData();
 };
 TramsControler.prototype.setColor = function(line, color) {
-    alert("NEW COLOR");
+    var index = 0;
+    while (index < this.colors.length) {
+        if (this.colors[index].line === line) {
+            break;
+        }
+        index++;
+    }
+    if (index < this.colors.length) {
+        this.colors[index].color = color;
+    } else {
+        this.colors.push({line: line, color: color});
+    }
 };
+TramsControler.prototype.getColor = function(line) {
+    for(var i = 0; i < this.colors.length; i++) {
+        if (this.colors[i].line === line) {
+            return (this.colors[i].color);
+        }
+    }
+    return (undefined);
+};
+TramsControler.prototype.removeColor = function(line) {
+    var index = 0;
+    while (index < this.colors.length) {
+        if (this.colors[index].line === line) {
+            break;
+        }
+        index++;
+    }
+    if (index < this.colors.length) {
+        this.colors.splice(index, 1);
+    }
+}
+
 TramsControler.prototype.clearColors = function() {
-    alert("Finish this");
+    this.colors = [];
 };
 TramsControler.prototype.saveColorsInStorage = function() {
-    alert("Finish it");
+    if (typeof(Storage) !== "undefined") {
+        //localStorage.setItem("trams-colors", JSON.stringify(this.colors));     
+    } else {
+        alert("NO STORAGE");
+    }
 };
 TramsControler.prototype.loadColorsFromStorage = function() {
-    alert("Finish it");
+    if (typeof(Storage) !== "undefined") {
+        //var colors = JSON.parse(localStorage.getItem("trams-colors"));             
+    } else {
+        alert("NO STORAGE");
+    }
 };
 
 /* TIMER FOR DATA UPDATING */   
