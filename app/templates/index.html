@@ -108,7 +108,17 @@ TRAMS - VIEW
         if ($("#auto-update").is(':checked')) {
             updateTimer.start();
         }
-    });     
+    });    
+
+    trams.on("onError", function(obj) {
+        updateInfo("Update Fail: 0 trams detected.", alertClass="alert-danger");
+        if ($("#auto-update").is(':checked')) {
+            updateTimer.start();
+        }
+    });
+
+    var data = trams.getTrams();
+
 
     // TIMER CALLBACKS
 
@@ -199,14 +209,18 @@ TRAMS - VIEW
     function resetMarkers() {
         clearMarkers();
         var data = trams.getTrams();
-        for (var i = 0; i < data.length; i++) {
-            var marker = addTramMarker(
-                data[i], map, 
-                trams.getColor(parseInt(data[i].FirstLine, 10))
-            );
-            markers.push(marker);
-        }  
-        return (data.length);
+        if (data !== null && data !== undefined) {
+            for (var i = 0; i < data.length; i++) {
+                var marker = addTramMarker(
+                    data[i], map, 
+                    trams.getColor(parseInt(data[i].FirstLine, 10))
+                );
+                markers.push(marker);
+            }  
+            return (data.length);
+        } else {
+            return 0;
+        }
     }
 
     function isNumeric(n) {
@@ -214,7 +228,6 @@ TRAMS - VIEW
     }
 
 /******************************************************************************/
-
 /*******************************************************************************
 COLORS
 *******************************************************************************/

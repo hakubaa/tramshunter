@@ -22,12 +22,18 @@ TramsModel.prototype.loadData = function() {
         data: null,
         cache: false,
         success: function(response) {
-            self.data.push({
-                  timestamp: new Date(),
-                  data: response.result
-            });
-            if (self.callbacks.onLoaded !== undefined) {
-                self.callbacks.onLoaded(response.result);
+            if (response.status == "OK") {
+                self.data.push({
+                      timestamp: new Date(),
+                      data: response.result
+                });
+                if (self.callbacks.onLoaded !== undefined) {
+                    self.callbacks.onLoaded(response.result);
+                }
+            } else {
+                if (self.callbacks.onError !== undefined) {
+                    self.callbacks.onError();
+                }
             }
         },
         error: self.callbacks.onError
@@ -48,7 +54,8 @@ function TramsControler(model) {
     this.colors = [];
     this.callbacks = {
         onLoad: undefined,
-        onLoaded: undefined
+        onLoaded: undefined,
+        onError: undefined
     };
 }
 
@@ -70,17 +77,22 @@ TramsControler.prototype.clearFilter = function() {
     this.filter = [];
 };
 TramsControler.prototype.getTrams = function() {
-    var trams = this.model.getData().data;
-    if (trams !== null && this.filter.length > 0) {
-        var temp = [];
-        for (var i = 0; i < trams.length; i++) {
-            if (this.filter.indexOf(parseInt(trams[i].FirstLine, 10)) > -1) {
-                temp.push(trams[i]);
+    var trams = this.model.getData();
+    if (trams !== null) {
+        var data = trams.data;
+        // Apply Filter
+        if (this.filter.length > 0) {
+            var temp = [];
+            for (var i = 0; i < data.length; i++) {
+                if (this.filter.indexOf(parseInt(data[i].FirstLine, 10)) > -1) {
+                    temp.push(data[i]);
+                }
             }
+            data = temp;
         }
-        trams = temp;
+        return data;
     }
-    return trams;
+    return null;
 };        
 TramsControler.prototype.updateData = function() {
     // update model's callbacks
@@ -93,6 +105,11 @@ TramsControler.prototype.updateData = function() {
     this.model.on("onLoaded", function(data) {
         if (self.callbacks.onLoaded !== undefined) {
             self.callbacks.onLoaded(self);
+        }
+    });
+    this.model.on("onError", function(data) {
+        if (self.callbacks.onError !== undefined) {
+            self.callbacks.onError(self);
         }
     });
     this.model.loadData();
