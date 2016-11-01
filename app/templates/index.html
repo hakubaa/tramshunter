@@ -73,6 +73,7 @@ GOOGLE MAPS
 
     var map = undefined;
     var markers = [];
+    var paths = [];
 
     function initialize() {
         var mapOptions = {
@@ -170,11 +171,50 @@ TRAMS - VIEW
             icon: pinImage
         }); 
         marker.addListener("click", (function() {
+            var tramLine = tram.FirstLine;
+            var tramBrigade = tram.Brigade;
             var infoWindow = new google.maps.InfoWindow({
-                content: tram.FirstLine + "(" + tram.Time + ")"
+                content: tramLine + "-" + tramBrigade + " (" + tram.Time + ")"
             });
+            var trace = {
+                path: undefined
+            };
             return (function() {
                 infoWindow.open(map, marker);
+
+                // Remove previous trams's trace (user clicks twice in the marker)
+                if (trace.path !== undefined) {
+                    var index = paths.indexOf(trace.path);
+                    if (index > 0) paths.splice(index, 0);
+                    trace.path.setMap(null);
+                    trace.path = undefined;
+                }
+
+                // Add new tram's trace
+                var data = trams.model.getTramTrace(tramLine, tramBrigade);
+                var coordinates = data.map(function(item) {
+                    console.log(item.Lat + "-" + item.Lon);
+                    return {lat: item.Lat, lng: item.Lon}
+                });
+                trace.path = new google.maps.Polyline({
+                    path: coordinates,
+                    geodesic: true,
+                    strokeColor: '#FF0000',
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2
+                });
+                trace.path.setMap(map);
+                paths.push(trace.path);
+
+                // Update close event's handler
+                google.maps.event.addListener(infoWindow,'closeclick',function() {
+                    if (trace.path !== undefined) {
+                        var index = paths.indexOf(trace.path);
+                        if (index > 0) paths.splice(index, 0);
+                        trace.path.setMap(null);
+                        trace.path = undefined;
+                    }
+                });
             });
         })());
         return (marker);
@@ -185,6 +225,10 @@ TRAMS - VIEW
              markers[i].setMap(null);
         }
         markers.length = 0;
+        for (var i = 0; i < paths.length; i++) {
+            paths[i].setMap(null);
+        }
+        paths.length = 0;
     }
 
     function updateInfo(msg, alertClass) {
@@ -207,9 +251,11 @@ TRAMS - VIEW
     }
 
     function resetMarkers() {
-        clearMarkers();
         var data = trams.getTrams();
         if (data !== null && data !== undefined) {
+            if (data.length > 0) {
+                clearMarkers();
+            }
             for (var i = 0; i < data.length; i++) {
                 var marker = addTramMarker(
                     data[i], map, 

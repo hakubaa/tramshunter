@@ -46,6 +46,15 @@ TramsModel.prototype.getData = function() {
         return (null);
     }
 };
+TramsModel.prototype.getTramTrace = function(tramLine, brigade) {
+    var data = this.data.map(function(item) { 
+        return (item.data.filter(function (tram) {
+                return (parseInt(tram.FirstLine, 10) == tramLine &&
+                        parseInt(tram.Brigade, 10) == brigade);
+            })[0])
+    });
+    return data;
+};
 
 /* CONTROLLER */
 function TramsControler(model) {
