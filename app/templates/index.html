@@ -193,7 +193,7 @@ TRAMS - VIEW
                 // Add new tram's trace
                 var data = trams.model.getTramTrace(tramLine, tramBrigade);
                 var coordinates = data.map(function(item) {
-                    console.log(item.Lat + "-" + item.Lon);
+                    // console.log(item.Lat + "-" + item.Lon);
                     return {lat: item.Lat, lng: item.Lon}
                 });
                 trace.path = new google.maps.Polyline({

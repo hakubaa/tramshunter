@@ -53,7 +53,7 @@ TramsModel.prototype.getTramTrace = function(tramLine, brigade) {
                         parseInt(tram.Brigade, 10) == brigade);
             })[0])
     });
-    return data;
+    return data.filter(function(item) { return item !== undefined; });
 };
 
 /* CONTROLLER */
